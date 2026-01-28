@@ -1,0 +1,5 @@
+{
+  "name": "Nebula Lottery",
+  "description": "A high-performance 3D particle lottery system for large screens using Three.js and React.",
+  "requestFramePermissions": []
+}
