@@ -60,6 +60,9 @@ export default {
 
       // API: 获取奖品列表
       if (path === '/api/get-prizes') return await handleGetPrizes(env, corsHeaders);
+
+      // API: 更新奖品数量
+      if (path === '/api/update-prize') return await handleUpdatePrize(request, env, corsHeaders);
       
       // API: 抽奖 (含通知)
       if (path === '/api/draw') return await handleDraw(request, env, ctx, corsHeaders);
@@ -71,8 +74,6 @@ export default {
       if (path === '/api/get-messages') return await handleGetMessages(env, corsHeaders);
 
       // Utility: 企业微信域名归属权验证
-      // 当企业微信后台要求上传 WW_verify_xyz.txt 时，它会访问此接口
-      // 请将 '这里填入txt文件内的纯文本内容' 替换为实际内容
       if (path.match(/^\/WW_verify_.+\.txt$/)) {
         return new Response('这里填入txt文件内的纯文本内容', { 
             headers: { 'Content-Type': 'text/plain' } 
@@ -189,13 +190,36 @@ async function handleGetPrizes(env: Env, corsHeaders: any): Promise<Response> {
   });
 }
 
+async function handleUpdatePrize(request: Request, env: Env, corsHeaders: any): Promise<Response> {
+  if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
+  
+  const body: any = await request.json().catch(() => ({}));
+  const { id, count } = body;
+  
+  if (!id || count === undefined) {
+    return new Response(JSON.stringify({ error: "Missing parameters" }), { status: 400, headers: corsHeaders });
+  }
+
+  const res = await env.DB.prepare("UPDATE prizes SET total_count = ? WHERE id = ?").bind(count, id).run();
+
+  if (res.meta.changes === 0) {
+      // NOTE: D1 meta changes check might differ based on version, but this is standard standard SQLite checks
+      // Usually need to check if rows matched. For now assuming success if no error.
+  }
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
+}
+
+
 async function handleDraw(request: Request, env: Env, ctx: ExecutionContext, corsHeaders: any): Promise<Response> {
   if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
   
   const body: any = await request.json().catch(() => ({}));
   const prizeId = body.prizeId;
 
-  // 1. Check Prize Stock (if prizeId is provided)
+  // 1. Check Prize Stock
   let prizeName = "幸运奖";
   if (prizeId) {
     const prize: any = await env.DB.prepare("SELECT * FROM prizes WHERE id = ?").bind(prizeId).first();

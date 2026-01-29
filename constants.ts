@@ -20,6 +20,6 @@ export const ROTATION_SPEED_ROLLING = 0.004; // Massive engine speed
 export const DAMPING_FACTOR = 0.02; // High drag
 
 // API Configuration
-// 如果前端和后端部署在同一台机器并通过 Nginx 反代，可以直接用空字符串 '' 让请求走相对路径 /api
-// 或者填入你服务器的公网 IP:端口，例如 'http://1.2.3.4:3001'
-export const API_BASE_URL = ''; 
+// 本地开发时指向 Node.js 后端端口 (3001)
+// 生产环境部署时，如果使用 Nginx 反代，请改回 '' (空字符串)
+export const API_BASE_URL = 'http://localhost:3001'; 

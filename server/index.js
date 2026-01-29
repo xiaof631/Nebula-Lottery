@@ -137,7 +137,24 @@ app.get('/api/get-prizes', (req, res) => {
   res.json(prizes);
 });
 
-// 5. Draw Winner
+// 5. Update Prize Count
+app.post('/api/update-prize', (req, res) => {
+  try {
+    const { id, count } = req.body;
+    if (!id || count === undefined) throw new Error("Missing parameters");
+    
+    const stmt = db.prepare("UPDATE prizes SET total_count = ? WHERE id = ?");
+    const result = stmt.run(count, id);
+    
+    if (result.changes === 0) throw new Error("Prize not found");
+    
+    res.json({ success: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// 6. Draw Winner
 app.post('/api/draw', async (req, res) => {
   try {
     const { prizeId } = req.body;
@@ -191,7 +208,7 @@ app.post('/api/draw', async (req, res) => {
   }
 });
 
-// 6. Proxy Image (CORS & Format)
+// 7. Proxy Image (CORS & Format)
 app.get('/api/proxy-image', async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).send("Missing url");
@@ -212,7 +229,7 @@ app.get('/api/proxy-image', async (req, res) => {
   }
 });
 
-// 7. Messages
+// 8. Messages
 app.get('/api/get-messages', (req, res) => {
   const msgs = db.prepare("SELECT * FROM messages ORDER BY created_at DESC LIMIT 50").all();
   res.json(msgs);
@@ -229,18 +246,14 @@ app.post('/api/send-message', (req, res) => {
   res.json({ success: true });
 });
 
-// 8. WeCom Domain Verify File
-// 如果需要上传文件验证，可以在这里硬编码返回，或者放在 public 目录下
+// 9. WeCom Domain Verify File
 app.get('/WW_verify_*.txt', (req, res) => {
-    // 替换为你的真实文件内容
     res.send('你的校验文件内容');
 });
 
-// 9. Serve Frontend (Build) - Optional
-// If you want Node to serve the static files too:
+// 10. Serve Frontend (Build)
 app.use(express.static(path.join(__dirname, '../dist')));
 app.get('*', (req, res) => {
-    // Only serve index.html for non-api routes
     if (!req.path.startsWith('/api') && !req.path.startsWith('/auth')) {
        res.sendFile(path.join(__dirname, '../dist/index.html'));
     }

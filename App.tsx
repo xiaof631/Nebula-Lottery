@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import LotteryScene, { LotterySceneRef } from './components/LotteryScene';
 import Controls from './components/Controls';
 import { LotteryStatus, WinnerPayload, Employee, Prize } from './types';
-import { fetchParticipants, drawWinner, fetchPrizes } from './services/lotteryService';
+import { fetchParticipants, drawWinner, fetchPrizes, updatePrize } from './services/lotteryService';
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<LotteryStatus>(LotteryStatus.IDLE);
@@ -33,6 +33,7 @@ const App: React.FC = () => {
         // Refresh prize counts silently
         const prizeData = await fetchPrizes();
         setPrizes(prev => {
+            // Only update if something substantial changed, preventing input flicker
             if (JSON.stringify(prev) !== JSON.stringify(prizeData)) return prizeData;
             return prev;
         });
@@ -59,6 +60,19 @@ const App: React.FC = () => {
         }
     }
   }, [isMusicPlaying]);
+
+  const handleUpdatePrizeCount = async (id: number, newCount: number) => {
+      // Optimistic update
+      setPrizes(prev => prev.map(p => p.id === id ? { ...p, total_count: newCount } : p));
+      try {
+          await updatePrize(id, newCount);
+      } catch (e) {
+          console.error("Failed to update prize", e);
+          // Revert on failure (reload from server)
+          const data = await fetchPrizes();
+          setPrizes(data);
+      }
+  };
 
   const handleStart = useCallback(() => {
     // Check stock
@@ -195,6 +209,7 @@ const App: React.FC = () => {
         prizes={prizes}
         currentPrizeIndex={currentPrizeIndex}
         onChangePrize={setCurrentPrizeIndex}
+        onUpdatePrizeCount={handleUpdatePrizeCount}
       />
     </div>
   );

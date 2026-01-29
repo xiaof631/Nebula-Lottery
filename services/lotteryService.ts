@@ -29,6 +29,24 @@ export const fetchPrizes = async (): Promise<Prize[]> => {
   }
 };
 
+export const updatePrize = async (id: number, count: number): Promise<void> => {
+  try {
+    if (API_BASE_URL.includes('your-subdomain')) {
+        console.warn("API not configured, update local only");
+        return;
+    }
+    const response = await fetch(`${API_BASE_URL}/api/update-prize`, {
+        method: 'POST',
+        body: JSON.stringify({ id, count }),
+        headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) throw new Error("Failed to update prize");
+  } catch (error) {
+      console.error(error);
+      throw error;
+  }
+}
+
 export const drawWinner = async (prizeId?: number): Promise<Employee | null> => {
   try {
     if (API_BASE_URL.includes('your-subdomain')) throw new Error("API not configured");
