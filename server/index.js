@@ -33,13 +33,13 @@ async function getAccessToken() {
   if (tokenCache.token && tokenCache.expires > now) {
     return tokenCache.token;
   }
-  
+
   const url = `https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CONFIG.CORP_ID}&corpsecret=${CONFIG.SECRET}`;
   const resp = await fetch(url);
   const data = await resp.json();
-  
+
   if (data.errcode !== 0) throw new Error(`WeCom Token Error: ${data.errmsg}`);
-  
+
   tokenCache = {
     token: data.access_token,
     expires: now + (data.expires_in - 200) * 1000 // Cache with buffer
@@ -85,12 +85,12 @@ app.get('/auth/callback', async (req, res) => {
     if (!code) return res.status(400).send('Missing code');
 
     const token = await getAccessToken();
-    
+
     // Get User ID
     const infoResp = await fetch(`https://qyapi.weixin.qq.com/cgi-bin/user/getuserinfo?access_token=${token}&code=${code}`);
     const infoData = await infoResp.json();
     if (infoData.errcode !== 0) throw new Error(infoData.errmsg);
-    
+
     const userId = infoData.UserId;
 
     // Get User Details
@@ -142,12 +142,12 @@ app.post('/api/update-prize', (req, res) => {
   try {
     const { id, count } = req.body;
     if (!id || count === undefined) throw new Error("Missing parameters");
-    
+
     const stmt = db.prepare("UPDATE prizes SET total_count = ? WHERE id = ?");
     const result = stmt.run(count, id);
-    
+
     if (result.changes === 0) throw new Error("Prize not found");
-    
+
     res.json({ success: true });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -159,7 +159,7 @@ app.post('/api/draw', async (req, res) => {
   try {
     const { prizeId } = req.body;
     let prizeName = "幸运奖";
-    
+
     // Transaction
     const winnerData = db.transaction(() => {
       // Check Prize
@@ -181,7 +181,7 @@ app.post('/api/draw', async (req, res) => {
       const now = Math.floor(Date.now() / 1000);
       db.prepare("UPDATE users SET is_winner=1, win_time=?, prize_id=? WHERE id=?")
         .run(now, prizeId || null, winner.id);
-      
+
       if (prizeId) {
         db.prepare("UPDATE prizes SET drawn_count = drawn_count + 1 WHERE id = ?").run(prizeId);
       }
@@ -212,14 +212,14 @@ app.post('/api/draw', async (req, res) => {
 app.get('/api/proxy-image', async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).send("Missing url");
-  
+
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error("Fetch failed");
-    
+
     res.set('Content-Type', response.headers.get('content-type'));
     res.set('Cache-Control', 'public, max-age=86400');
-    
+
     // Convert Web ReadableStream to Node Stream
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -238,25 +238,25 @@ app.get('/api/get-messages', (req, res) => {
 app.post('/api/send-message', (req, res) => {
   const { userId, name, content } = req.body;
   if (!content) return res.status(400).send("Missing content");
-  
+
   const now = Math.floor(Date.now() / 1000);
   db.prepare("INSERT INTO messages (user_id, name, content, created_at) VALUES (?, ?, ?, ?)")
     .run(userId || 'anon', name || '匿名', content, now);
-  
+
   res.json({ success: true });
 });
 
 // 9. WeCom Domain Verify File
-app.get('/WW_verify_*.txt', (req, res) => {
-    res.send('你的校验文件内容');
+app.get(/\/WW_verify_.*\.txt$/, (req, res) => {
+  res.send('你的校验文件内容');
 });
 
 // 10. Serve Frontend (Build)
 app.use(express.static(path.join(__dirname, '../dist')));
-app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api') && !req.path.startsWith('/auth')) {
-       res.sendFile(path.join(__dirname, '../dist/index.html'));
-    }
+app.get(/.*/, (req, res) => {
+  if (!req.path.startsWith('/api') && !req.path.startsWith('/auth')) {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  }
 });
 
 app.listen(PORT, () => {
