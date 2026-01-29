@@ -1,0 +1,22 @@
+name = "nebula-lottery-api"
+main = "worker/index.ts"
+compatibility_date = "2024-09-23"
+
+# D1 Database Configuration
+[[d1_databases]]
+binding = "DB" # 必须与 worker/index.ts 中的 Env 接口定义一致 (env.DB)
+database_name = "lottery_db"
+database_id = "6ba1e0d4-ded3-4a41-86d4-b818dd856bea" 
+
+# Environment Variables (Non-secret)
+[vars]
+# 部署后，请将此处替换为您的真实 Worker 地址
+WORKER_BASE_URL = "https://nebula-lottery-api.your-subdomain.workers.dev"
+# 部署后，请将此处替换为您的真实 Pages 前端地址
+FRONTEND_URL = "https://your-frontend.pages.dev"
+
+# Note: Sensitive secrets should NOT be committed here.
+# Run the following commands to set them:
+# npx wrangler secret put WECOM_CORPID
+# npx wrangler secret put WECOM_SECRET
+# npx wrangler secret put WECOM_AGENTID
